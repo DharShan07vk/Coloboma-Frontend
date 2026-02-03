@@ -50,7 +50,7 @@ const SignUp = () => {
         });
         return;
       }
-      localStorage.setItem("user", JSON.stringify({ name, email }));
+      localStorage.setItem("user", JSON.stringify({ name, email, id: data.id }));
       
       setIsLoading(false);
       toast({

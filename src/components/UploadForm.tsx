@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/constants';
 
 
 const UploadForm = () => {
@@ -90,11 +91,26 @@ const UploadForm = () => {
 
   try {
     setIsLoading(true);
-
+    
+    // Get user data from localStorage
+    const userString = localStorage.getItem('user');
+    if (!userString) {
+      toast({
+        title: "Authentication Error",
+        description: "Please login to continue.",
+        variant: "destructive"
+      });
+      navigate('/login');
+      return;
+    }
+    
+    const user = JSON.parse(userString);
+    
     const formData = new FormData();
     formData.append('image', image);
+    formData.append('id', user.id)
 
-    const response = await fetch('https://coloboma-backend.onrender.com/predict', {
+    const response = await fetch(API_BASE_URL + '/predict', {
       method: 'POST',
       body: formData
     });

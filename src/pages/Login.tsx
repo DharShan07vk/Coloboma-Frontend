@@ -44,7 +44,8 @@ const Login = () => {
 
       localStorage.setItem("user", JSON.stringify({ 
         name: data.name, 
-        email : formData.email
+        email : formData.email,
+        id : data.id
       }));
  
       setIsLoading(false);

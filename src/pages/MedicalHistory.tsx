@@ -4,15 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "@/lib/constants";
+import { toast } from "@/components/ui/use-toast";
 
 interface HistoryEntry {
-  id: string;
-  date: string;
-  diagnosisDate: string;
-  result: {
-    isColoboma: boolean;
-    confidence: number;
-  };
+  imageName: string;
+  imageData?: string;
+  isColoboma: boolean;
+  confidence: string;
+  createdAt: string;
 }
 
 const MedicalHistory = () => {
@@ -20,8 +20,8 @@ const MedicalHistory = () => {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [user, setUser] = useState<{ name: string; email: string } | null>(null);
 
-  useEffect(() => {
-    // Check if user is logged in
+ useEffect(() => {
+  const fetchHistory = async () => {
     const userString = localStorage.getItem("user");
     if (!userString) {
       navigate("/login");
@@ -31,12 +31,37 @@ const MedicalHistory = () => {
     const userData = JSON.parse(userString);
     setUser(userData);
 
-    // Get history from localStorage
-    const historyString = localStorage.getItem("medicalHistory");
-    if (historyString) {
-      setHistory(JSON.parse(historyString));
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/history/${userData.id}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch history");
+      }
+
+      const data = await response.json();
+      setHistory(data.history || []);
+      console.log(data);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch medical history",
+        variant: "destructive",
+      });
     }
-  }, [navigate]);
+  };
+
+  fetchHistory();
+}, [navigate]);
+
 
   if (!user) {
     return <div>Loading...</div>;
@@ -56,51 +81,73 @@ const MedicalHistory = () => {
         </CardHeader>
         <CardContent>
           {history.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Diagnosis Date</TableHead>
-                    <TableHead>Result</TableHead>
-                    <TableHead>Confidence</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {history.map((entry) => (
-                    <TableRow key={entry.id}>
-                      <TableCell>
-                        {new Date(entry.date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>{entry.diagnosisDate}</TableCell>
-                      <TableCell>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            entry.result.isColoboma
-                              ? "bg-red-100 text-red-800"
-                              : "bg-green-100 text-green-800"
-                          }`}
-                        >
-                          {entry.result.isColoboma
-                            ? "Coloboma Detected"
-                            : "No Coloboma Detected"}
-                        </span>
-                      </TableCell>
-                      <TableCell>{entry.result.confidence}%</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/results?id=${entry.id}`)}
-                        >
-                          View Details
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="space-y-4">
+              {history.map((entry, index) => (
+                <Card key={index} className="overflow-hidden">
+                  <div className="flex flex-col md:flex-row gap-4 p-4">
+                    {/* Image Section */}
+                    <div className="flex-shrink-0 w-full md:w-64">
+                      {entry.imageData ? (
+                        <img 
+                          src={`data:image/jpeg;base64,${entry.imageData}`}
+                          alt={entry.imageName}
+                          className="w-full h-48 object-cover rounded-lg shadow-md"
+                        />
+                      ) : (
+                        <div className="w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <span className="text-sm text-gray-500">{entry.imageName}</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Details Section */}
+                    <div className="flex-1 flex flex-col justify-between">
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-sm text-gray-500">Date</p>
+                          <p className="text-lg font-medium">
+                            {new Date(entry.createdAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm text-gray-500">Diagnosis Result</p>
+                          <span
+                            className={`inline-block mt-1 px-3 py-1 rounded-full text-sm font-medium ${
+                              entry.isColoboma
+                                ? "bg-red-100 text-red-800"
+                                : "bg-green-100 text-green-800"
+                            }`}
+                          >
+                            {entry.isColoboma
+                              ? "Coloboma Detected"
+                              : "No Coloboma Detected"}
+                          </span>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm text-gray-500">Confidence Level</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <p className="text-2xl font-bold">{entry.confidence}%</p>
+                            <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-xs">
+                              <div 
+                                className={`h-2 rounded-full ${
+                                  entry.isColoboma ? 'bg-red-500' : 'bg-green-500'
+                                }`}
+                                style={{ width: `${entry.confidence}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
           ) : (
             <div className="text-center py-10">
