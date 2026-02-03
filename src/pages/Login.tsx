@@ -6,29 +6,47 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { API_BASE_URL } from "@/lib/constants";
 
 const Login = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const[formData, setFormData] = useState({
+    email : "",
+    password:""
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+
+  const  handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // This is a mock authentication - in a real app, you'd connect to a backend
-    setTimeout(() => {
-      // Get display name from email
-      const displayName = email.split('@')[0];
-      
-      // Save user info to localStorage for demo purposes
+      const response = await fetch(API_BASE_URL+'/login',{
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      })
+
+      const data = await response.json();
+      if(data.success === false) {
+        setIsLoading(false);
+        toast({
+          title: "Login failed..",
+          description: data.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
       localStorage.setItem("user", JSON.stringify({ 
-        name: displayName, 
-        email 
+        name: data.name, 
+        email : formData.email
       }));
-      
+ 
       setIsLoading(false);
       toast({
         title: "Login successful",
@@ -37,7 +55,6 @@ const Login = () => {
       
       // Force a page refresh to update all components with login state
       window.location.href = "/";
-    }, 1000);
   };
 
   const toggleShowPassword = () => setShowPassword(!showPassword);
@@ -62,8 +79,8 @@ const Login = () => {
                 type="email"
                 placeholder="m@example.com"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value})}
               />
             </div>
             <div className="space-y-2">
@@ -76,8 +93,8 @@ const Login = () => {
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value})}
                   className="pr-10"
                 />
                 <button
@@ -93,8 +110,10 @@ const Login = () => {
                 </button>
               </div>
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading}
+            onSubmit = {handleSubmit}>
               {isLoading ? "Signing in..." : "Sign In"}
+              
             </Button>
           </form>
         </CardContent>

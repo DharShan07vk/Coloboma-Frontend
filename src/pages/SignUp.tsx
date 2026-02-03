@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { API_BASE_URL } from "@/lib/constants";
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ const SignUp = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (password !== confirmPassword) {
@@ -30,9 +31,25 @@ const SignUp = () => {
     
     setIsLoading(true);
 
-    // This is a mock registration - in a real app, you'd connect to a backend
-    setTimeout(() => {
-      // Save user info to localStorage for demo purposes
+
+      const rsponse = await fetch(API_BASE_URL+'/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name, email, password })
+      })
+
+      const data = await rsponse.json();
+      if(data.message === "User already exists") {
+        setIsLoading(false);
+        toast({
+          title: "Email already in use",
+          description: "Please use a different email.",
+          variant: "destructive"
+        });
+        return;
+      }
       localStorage.setItem("user", JSON.stringify({ name, email }));
       
       setIsLoading(false);
@@ -43,7 +60,6 @@ const SignUp = () => {
       
       // Force a page refresh to update all components with login state
       window.location.href = "/";
-    }, 1000);
   };
 
   const toggleShowPassword = () => setShowPassword(!showPassword);
