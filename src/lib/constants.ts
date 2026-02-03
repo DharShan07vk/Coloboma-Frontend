@@ -1,3 +1,3 @@
-export const API_BASE_URL = import.meta.env.mode === "production"
+export const API_BASE_URL = true
   ? "https://coloboma-backend.onrender.com"
   : "http://127.0.0.1:5000";
